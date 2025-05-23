@@ -1,0 +1,6 @@
+BasedOnStyle: Microsoft
+ColumnLimit: 80
+AlignConsecutiveAssignments: true
+AlignConsecutiveBitFields: true
+AlignConsecutiveMacros: true
+AlignOperands: true
