@@ -16,6 +16,8 @@ static const char *log_level_to_string(enum log_level level)
 {
     switch (level)
     {
+    case LOG_DEBUG:
+        return "DEBUG";
     case LOG_INFO:
         return "INFO";
     case LOG_ERROR:
@@ -76,5 +78,13 @@ void log_info(const char *fmt, ...)
     va_list ap;
     va_start(ap, fmt);
     log_impl(stderr, LOG_INFO, NULL, fmt, ap);
+    va_end(ap);
+}
+
+void log_debug(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    log_impl(stderr, LOG_DEBUG, ANSI_CYAN, fmt, ap);
     va_end(ap);
 }
