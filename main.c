@@ -5,8 +5,19 @@
 
 int main(void) {
     struct server s;
-    int rc = 0;
 
-    rc = server_init(&s);
-    return rc;
+    log_info("starting zerod");
+
+    if (server_init(&s))
+    {
+        goto err;
+    }
+
+    if (server_cleanup(&s))
+    {
+        goto err;
+    }
+
+err:
+    return 1;
 }
