@@ -1,5 +1,6 @@
 #include "server.h"
 
+#include <arpa/inet.h> /* inet_ntop */
 #include <errno.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -23,11 +24,44 @@ static int zerod_setsockopt(int fd, int optname, int optval)
     return 0;
 }
 
+// TODO: this should be parameterized with host and port as strings.
+// TODO: use getaddrinfo.
+static int server_bind_ipv4(struct server *s, int port)
+{
+    s->ipv4_sockaddr.sin_addr.s_addr = INADDR_ANY;
+    s->ipv4_sockaddr.sin_family = AF_INET;
+    s->ipv4_sockaddr.sin_port = htons(port);
 
+    int const rc = bind(s->ipv4_socket_fd, (struct sockaddr *)(&s->ipv4_sockaddr), sizeof(struct sockaddr_in));
+    if (rc != 0)
+    {
+        log_error("bind(fd: %d, port: %d) error: %s", s->ipv4_socket_fd, port, strerror(errno));
+        return 1;
+    }
+
+    // TODO: this should be parameterized to not just bind to INADDR_ANY
+    log_info("ipv4: bound to 0.0.0.0:%d", port);
+    return 0;
+}
+
+static int server_listen(struct server *s)
+{
+    int rc = 0;
+    rc = listen(s->ipv4_socket_fd, s->ipv4_backlog);
+
+    if (rc != 0)
+    {
+        log_error("listen(fd: %d) error: %s", s->ipv4_socket_fd, strerror(errno));
+        return 1;
+    }
+
+    return 0;
+}
 
 int server_init(struct server *s)
 {
     memset(s, 0, sizeof(struct server));
+    s->ipv4_backlog = 5; // TODO: parameterize
     int rc = 0;
 
     s->ipv4_socket_fd = socket(PF_INET, SOCK_STREAM, 0);
@@ -47,6 +81,15 @@ int server_init(struct server *s)
 
     if (server_bind_ipv4(s, 8080))
     {
+        // FIXME: close should have checked return value
+        close(s->ipv4_socket_fd);
+        s->ipv4_socket_fd = 0;
+        return 1;
+    }
+
+    if (server_listen(s))
+    {
+        // FIXME: close should have checked return value
         close(s->ipv4_socket_fd);
         s->ipv4_socket_fd = 0;
         return 1;
@@ -55,25 +98,7 @@ int server_init(struct server *s)
     return 0;
 }
 
-// TODO: this should be parameterized with host and port as strings.
-// TODO: use getaddrinfo.
-int server_bind_ipv4(struct server *s, int port)
-{
-    s->ipv4_sockaddr.sin_addr.s_addr = INADDR_ANY;
-    s->ipv4_sockaddr.sin_family = AF_INET;
-    s->ipv4_sockaddr.sin_port = htons(port);
 
-    int const rc = bind(s->ipv4_socket_fd, (struct sockaddr *)(&s->ipv4_sockaddr), sizeof(struct sockaddr_in));
-    if (rc != 0)
-    {
-        log_error("bind(fd: %d, port: %d) error: %s", s->ipv4_socket_fd, port, strerror(errno));
-        return 1;
-    }
-
-    // TODO: this should be parameterized to not just bind to INADDR_ANY
-    log_info("ipv4: bound to 0.0.0.0:%d", port);
-    return 0;
-}
 
 int server_cleanup(struct server *s)
 {
@@ -93,4 +118,26 @@ int server_cleanup(struct server *s)
     }
 
     return 0;
+}
+
+int server_eventloop(struct server *s)
+{
+    int peer_fd = 0;
+
+    struct sockaddr_storage peer_addr;
+    socklen_t peer_addr_len = 0;
+
+    while (1)
+    {
+        memset(&peer_addr, 0, sizeof(struct sockaddr_in));
+        peer_fd = accept(s->ipv4_socket_fd, (struct sockaddr*)&peer_addr, &peer_addr_len);
+        if (peer_fd == -1)
+        {
+            log_error("failed to accept peer: %s", strerror(errno));
+            return 1;
+        }
+
+        log_debug("accepted connection!");
+        close(peer_fd);
+    }
 }
