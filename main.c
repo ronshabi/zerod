@@ -13,11 +13,6 @@ int main(void) {
         goto err;
     }
 
-    if (server_bind_ipv4(&s, 8080))
-    {
-        goto err;
-    }
-
     if (server_cleanup(&s))
     {
         goto err;

@@ -45,6 +45,13 @@ int server_init(struct server *s)
         return 1;
     }
 
+    if (server_bind_ipv4(s, 8080))
+    {
+        close(s->ipv4_socket_fd);
+        s->ipv4_socket_fd = 0;
+        return 1;
+    }
+
     return 0;
 }
 
@@ -72,14 +79,18 @@ int server_cleanup(struct server *s)
 {
     int rc = 0;
 
-    rc = close(s->ipv4_socket_fd);
-    if (rc == -1)
+    if (s->ipv4_socket_fd != 0)
     {
-        log_error("can't close IPv4 socket properly (%s)", strerror(errno));
-        return 1;
-    }
+        rc = close(s->ipv4_socket_fd);
 
-    log_debug("closed IPv4 socket");
+        if (rc == -1)
+        {
+            log_error("can't close IPv4 socket properly (%s)", strerror(errno));
+            return 1;
+        }
+
+        log_debug("ipv4: closed socket");
+    }
 
     return 0;
 }
