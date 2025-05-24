@@ -13,8 +13,6 @@ int main(void) {
         goto err;
     }
 
-    server_eventloop(&s);
-
     if (server_cleanup(&s))
     {
         goto err;
