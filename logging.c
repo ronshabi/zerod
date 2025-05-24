@@ -20,6 +20,8 @@ static const char *log_level_to_string(enum log_level level)
         return "DEBUG";
     case LOG_INFO:
         return "INFO";
+    case LOG_WARN:
+        return "WARN";
     case LOG_ERROR:
         return "ERROR";
     default:
@@ -78,6 +80,13 @@ void log_info(const char *fmt, ...)
     va_list ap;
     va_start(ap, fmt);
     log_impl(stderr, LOG_INFO, NULL, fmt, ap);
+    va_end(ap);
+}
+void log_warn(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    log_impl(stderr, LOG_WARN, ANSI_YELLOW, fmt, ap);
     va_end(ap);
 }
 
