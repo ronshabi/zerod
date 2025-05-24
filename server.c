@@ -124,20 +124,28 @@ int server_eventloop(struct server *s)
 {
     int peer_fd = 0;
 
+
     struct sockaddr_storage peer_addr;
     socklen_t peer_addr_len = 0;
 
     while (1)
     {
-        memset(&peer_addr, 0, sizeof(struct sockaddr_in));
-        peer_fd = accept(s->ipv4_socket_fd, (struct sockaddr*)&peer_addr, &peer_addr_len);
-        if (peer_fd == -1)
+        peer_init(&s->peer);
+        s->peer.socket_fd = accept(s->ipv4_socket_fd, (struct sockaddr*)&s->peer.sockaddr, &s->peer.sockaddr_len);
+
+        if (s->peer.socket_fd == -1)
         {
             log_error("failed to accept peer: %s", strerror(errno));
             return 1;
         }
 
-        log_debug("accepted connection!");
+        log_debug("accepted peer!");
+
+        while (s->peer.receive_state != PEER_RECEIVE_DONE)
+        {
+            peer_recv(&s->peer);
+            log_debug("RECEIVED (%s)", s->peer.recvbuf);
+        }
         close(peer_fd);
     }
 }
