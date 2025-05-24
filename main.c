@@ -8,16 +8,7 @@ int main(void) {
 
     log_info("starting zerod");
 
-    if (server_init(&s))
-    {
-        goto err;
-    }
+    server_init(&s, "8080");
 
-    if (server_cleanup(&s))
-    {
-        goto err;
-    }
-
-err:
-    return 1;
+    return 0;
 }
