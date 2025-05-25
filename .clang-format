@@ -1,6 +1,13 @@
 BasedOnStyle: Microsoft
 ColumnLimit: 80
+
+AlignAfterOpenBracket: true
+AlignArrayOfStructures: Left
 AlignConsecutiveAssignments: true
 AlignConsecutiveBitFields: true
 AlignConsecutiveMacros: true
+AlignConsecutiveDeclarations: true
 AlignOperands: true
+AlignTrailingComments: true
+AllowAllArgumentsOnNextLine: false
+AllowShortBlocksOnASingleLine: false
