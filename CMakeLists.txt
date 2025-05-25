@@ -7,6 +7,8 @@ set(CMAKE_COLOR_DIAGNOSTICS ON)
 set(CMAKE_COLOR_MAKEFILE ON)
 
 add_executable(zerod
+        buffer.c
+        buffer.h
         main.c
         server.c
         server.h
