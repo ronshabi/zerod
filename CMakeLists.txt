@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.31)
 project(zerod C)
 
 set(CMAKE_C_STANDARD 99)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_COLOR_DIAGNOSTICS ON)
+set(CMAKE_COLOR_MAKEFILE ON)
 
 add_executable(zerod
         main.c

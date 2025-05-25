@@ -3,3 +3,4 @@
 .clangd/
 .vscode/
 cmake-*/
+build/
