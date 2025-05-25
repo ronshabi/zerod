@@ -13,17 +13,15 @@ enum server_status
     SERVER_ERROR_OS,
 };
 
-struct server {
-    enum server_status status;
-    bool ipv4_enabled;
-    bool ipv6_enabled;
-    char ipv4_address[INET_ADDRSTRLEN];
-    char ipv6_address[INET6_ADDRSTRLEN];
-    int ipv4_socket_fd;
-    int ipv4_backlog;
-    struct sockaddr_in ipv4_sockaddr;
-    struct sockaddr_in6 ipv6_sockaddr;
+struct server
+{
+    enum server_status      status;
+    int                     address_family;
+    int                     socket_fd;
+    const char             *port_str;
+    struct sockaddr_storage sockaddr;
+    char                    address_str[INET6_ADDRSTRLEN];
 };
 
-void server_init(struct server *s, const char *port);
-int server_cleanup(struct server *s);
+void server_init(struct server *s, const char *port, int address_family);
+int  server_cleanup(struct server *s);

@@ -32,10 +32,10 @@ static const char *log_level_to_string(enum log_level level)
 void log_impl(FILE *f, enum log_level level, const char *ansi_color,
               const char *fmt, va_list ap)
 {
-    int rc                            = 0;
-    struct timespec tp                = {0};
-    struct tm tm                      = {0};
-    char time_buffer[TIME_BUFFER_LEN] = {0};
+    int             rc                           = 0;
+    struct timespec tp                           = {0};
+    struct tm       tm                           = {0};
+    char            time_buffer[TIME_BUFFER_LEN] = {0};
 
     rc = clock_gettime(CLOCK_REALTIME, &tp);
     if (rc == -1)
