@@ -81,6 +81,8 @@ void *buffer_push_zeros(struct buffer *buf)
     ++buf->len;
     return buf->data + (buf->len - 1) * buf->stride;
 }
+
+void *buffer_at(struct buffer *buf, uint64_t index)
 {
     if (index >= buf->len)
     {

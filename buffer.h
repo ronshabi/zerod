@@ -22,3 +22,5 @@ void *buffer_push(struct buffer *buf, const void *elem);
 
 // Push a zeroed-out element to the buffer, and return the pointer to it.
 void *buffer_push_zeros(struct buffer *buf);
+
+void *buffer_at(struct buffer *buf, uint64_t index);
