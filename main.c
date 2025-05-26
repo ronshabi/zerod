@@ -7,7 +7,7 @@ int main(void)
 {
     struct server s;
 
-    log_info("starting zerod");
+    log_info("Starting zerod");
 
     server_init(&s, "8080", AF_INET);
 
