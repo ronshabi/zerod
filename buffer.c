@@ -4,21 +4,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-void buffer_init(struct buffer *buf, uint64_t stride)
-{
-    memset(buf, 0, sizeof(struct buffer));
-    buf->stride = stride;
-}
+//
+// Internal functions
+//
 
-void buffer_clear(struct buffer *buf)
-{
-    if (buf->data)
-    {
-        memset(buf->data, 0, buf->cap * buf->stride);
-    }
-}
-
-void *buffer_push(struct buffer *buf, const void *elem)
+static void prepare_push(struct buffer *buf)
 {
     if (buf->len == buf->cap)
     {
@@ -76,12 +66,21 @@ void buffer_clear(struct buffer *buf)
     }
 }
 
+void *buffer_push(struct buffer *buf, const void *elem)
+{
+    prepare_push(buf);
     memcpy(buf->data + buf->len * buf->stride, elem, buf->stride);
     ++buf->len;
     return buf->data + (buf->len - 1) * buf->stride;
 }
 
-void *buffer_get_item_ptr(struct buffer *buf, uint64_t index)
+void *buffer_push_zeros(struct buffer *buf)
+{
+    prepare_push(buf);
+    memset(buf->data + buf->len * buf->stride, 0, buf->stride);
+    ++buf->len;
+    return buf->data + (buf->len - 1) * buf->stride;
+}
 {
     if (index >= buf->len)
     {
