@@ -85,6 +85,31 @@ static int server_setup_getaddrinfo(struct server *s)
     return rc;
 }
 
+static int zerod_make_socket_nonblocking(int sockfd)
+{
+    int flags = fcntl(sockfd, F_GETFL);
+    if (flags == -1)
+    {
+        log_error("fcntl(socket %d, F_GETFL) failed: %s", sockfd,
+                  strerror(sockfd));
+        return 1;
+    }
+
+    flags |= O_NONBLOCK;
+
+    int rc = fcntl(sockfd, F_SETFL, flags);
+    if (rc == -1)
+    {
+        log_error("fcntl(socket %d, set +nonblock): %s", sockfd,
+                  strerror(sockfd));
+        return 1;
+    }
+
+    log_debug("Socket %d now set to non-blocking", sockfd);
+
+    return 0;
+}
+
 static int server_setup_socket(struct server *s)
 {
     int fd = socket(s->address_family, SOCK_STREAM, 0);
