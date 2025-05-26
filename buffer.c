@@ -44,6 +44,37 @@ void *buffer_push(struct buffer *buf, const void *elem)
             buf->cap *= 2;
         }
     }
+}
+
+//
+// Public functions
+//
+
+void buffer_init(struct buffer *buf, uint64_t stride)
+{
+    memset(buf, 0, sizeof(struct buffer));
+    buf->stride = stride;
+}
+
+void buffer_free(struct buffer *buf)
+{
+    if (buf->data)
+    {
+        free(buf->data);
+        buf->data = NULL;
+    }
+
+    buf->cap = 0;
+    buf->len = 0;
+}
+
+void buffer_clear(struct buffer *buf)
+{
+    if (buf->data)
+    {
+        memset(buf->data, 0, buf->cap * buf->stride);
+    }
+}
 
     memcpy(buf->data + buf->len * buf->stride, elem, buf->stride);
     ++buf->len;
