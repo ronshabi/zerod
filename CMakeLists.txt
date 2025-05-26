@@ -23,6 +23,7 @@ target_compile_options(zerod PRIVATE
     "-Wall"
     "-Wextra"
     "-Wformat"
+    "-g"
     "-O1"
     "-fsanitize=address"
 )
@@ -30,3 +31,23 @@ target_compile_options(zerod PRIVATE
 target_link_options(zerod PRIVATE
     "-fsanitize=address"
 )
+
+enable_testing()
+add_executable(test_buffer tests/test_buffer.c buffer.c buffer.h)
+
+target_compile_options(test_buffer PRIVATE
+    "-Wall"
+    "-Wextra"
+    "-Wformat"
+    "-g"
+    "-O1"
+    "-fsanitize=address"
+)
+
+target_link_options(test_buffer PRIVATE
+    "-fsanitize=address"
+)
+
+add_test(NAME test_buffer
+        COMMAND test_buffer)
+
