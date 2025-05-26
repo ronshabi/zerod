@@ -12,6 +12,8 @@ add_executable(zerod
         main.c
         server.c
         server.h
+        socket.c
+        socket.h
         logging.c
         logging.h
         panic.h
