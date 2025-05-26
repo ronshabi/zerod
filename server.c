@@ -74,6 +74,9 @@ static int server_setup_getaddrinfo(struct server *s)
         addr_len = INET6_ADDRSTRLEN;
     }
 
+    // memcpy to server's sockaddr!
+    memcpy(&s->sockaddr, res->ai_addr, res->ai_addrlen);
+
     const char *ntop_rv = NULL;
     ntop_rv = inet_ntop(res->ai_family, addr_ptr, s->address_str, addr_len);
     assert(ntop_rv);
