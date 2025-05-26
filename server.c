@@ -1,16 +1,16 @@
-#include "server.h"
-
-#include "logging.h"
-
+#include <arpa/inet.h> // inet_ntop
 #include <assert.h>
 #include <errno.h>
-#include <string.h>
-
-#include <arpa/inet.h> // inet_ntop
-#include <netdb.h>     // getaddrinfo, freeaddrinfo
+#include <fcntl.h>
+#include <netdb.h> // getaddrinfo, freeaddrinfo
 #include <stdbool.h>
-
+#include <stdio.h>
+#include <string.h>
+#include <sys/epoll.h>
 #include <sys/socket.h>
+
+#include "logging.h"
+#include "server.h"
 
 //
 // Static functions
@@ -129,6 +129,12 @@ static int server_setup_socket(struct server *s)
         return 1;
     }
 
+    // Make socket nonblocking
+    if (zerod_make_socket_nonblocking(fd))
+    {
+        return 1;
+    }
+
     return 0;
 }
 
@@ -160,8 +166,74 @@ static int server_setup_listen(struct server *s)
     return 0;
 }
 
+static int server_setup_epoll(struct server *s)
+{
+    s->epoll_fd = epoll_create1(0);
+    if (s->epoll_fd == -1)
+    {
+        log_error("Failed to setup epoll, epoll_create1 failed: %s",
+                  strerror(errno));
+        return 1;
+    }
+
+    s->epoll_ev.events  = EPOLLIN | EPOLLOUT | EPOLLET;
+    s->epoll_ev.data.fd = s->socket_fd;
+
+    int epoll_ctl_result =
+        epoll_ctl(s->epoll_fd, EPOLL_CTL_ADD, s->socket_fd, &s->epoll_ev);
+
+    if (epoll_ctl_result == -1)
+    {
+        log_error("Failed to setup epoll, epoll_ctl failed: %s",
+                  strerror(errno));
+        return 1;
+    }
+
+    log_debug("Setup epoll on listening socket %d -> epoll_fd = %d",
+              s->socket_fd, s->epoll_fd);
+
+    return 0;
+}
+
+void server_process_one_event(struct server *s, int event_index)
+{
+    log_debug("Processing event #%d", event_index);
+
+    struct epoll_event current_event = s->epoll_events[event_index];
+
+    if (current_event.data.fd == s->socket_fd)
+    {
+        log_debug("\t> got event on listening socket! should accept");
+    }
+}
+
 void server_process_events(struct server *s)
 {
+    log_debug("Starting server event loop");
+
+    while (s->status == SERVER_OK)
+    {
+        log_debug("EventLoop: Trying to pull events");
+        // Pull the events
+        int nfds =
+            epoll_wait(s->epoll_fd, s->epoll_events, SERVER_MAX_EVENTS, -1);
+
+        log_debug("EventLoop: %d events pulled", nfds);
+
+        if (nfds == -1)
+        {
+            log_error("Can't pull events, epoll_wait failed: %s",
+                      strerror(errno));
+            s->status = SERVER_ERROR_EVENTLOOP;
+            return;
+        }
+
+        // Process the events
+        for (int n = 0; n < nfds; ++n)
+        {
+            server_process_one_event(s, n);
+        }
+    }
 }
 
 //
@@ -198,4 +270,12 @@ void server_init(struct server *s, const char *port, int address_family)
         s->status = SERVER_ERROR_OS;
         return;
     }
+
+    if (server_setup_epoll(s))
+    {
+        s->status = SERVER_ERROR_OS;
+        return;
+    }
+
+    server_process_events(s);
 }
