@@ -35,7 +35,7 @@ void *buffer_push(struct buffer *buf, const void *elem)
         }
         else
         {
-            buf->data = realloc(buf->data, buf->cap * 2);
+            buf->data = realloc(buf->data, buf->cap * buf->stride * 2);
             if (buf->data == NULL)
             {
                 panic("buffer realloc failed");
