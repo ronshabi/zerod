@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define SERVER_MAX_CONNECTIONS 1000
+#define SERVER_BACKLOG 1024
 
 enum server_status
 {

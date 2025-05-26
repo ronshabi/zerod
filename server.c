@@ -104,7 +104,37 @@ static int server_setup_socket(struct server *s)
     return 0;
 }
 
-// static int server_setup_bind()
+static int server_setup_bind(struct server *s)
+{
+    if (bind(s->socket_fd, (struct sockaddr *)&s->sockaddr,
+             sizeof(s->sockaddr)) != 0)
+    {
+        log_error("Bind to %s:%s failed: %s", s->address_str, s->port_str,
+                  strerror(errno));
+        return 1;
+    }
+
+    log_debug("Bind sockfd %d to %s:%s succeeded", s->socket_fd, s->address_str,
+              s->port_str);
+
+    return 0;
+}
+
+static int server_setup_listen(struct server *s)
+{
+    if (listen(s->socket_fd, 0) != 0)
+    {
+        log_error("Listen failed");
+        return 1;
+    }
+
+    log_debug("Listening on %s:%s", s->address_str, s->port_str);
+    return 0;
+}
+
+void server_process_events(struct server *s)
+{
+}
 
 //
 // Public functions
@@ -124,6 +154,18 @@ void server_init(struct server *s, const char *port, int address_family)
     }
 
     if (server_setup_socket(s))
+    {
+        s->status = SERVER_ERROR_OS;
+        return;
+    }
+
+    if (server_setup_bind(s))
+    {
+        s->status = SERVER_ERROR_OS;
+        return;
+    }
+
+    if (server_setup_listen(s))
     {
         s->status = SERVER_ERROR_OS;
         return;
