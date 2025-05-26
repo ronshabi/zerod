@@ -85,32 +85,7 @@ static int server_setup_getaddrinfo(struct server *s)
     return rc;
 }
 
-static int zerod_make_socket_nonblocking(int sockfd)
-{
-    int flags = fcntl(sockfd, F_GETFL);
-    if (flags == -1)
-    {
-        log_error("fcntl(socket %d, F_GETFL) failed: %s", sockfd,
-                  strerror(sockfd));
-        return 1;
-    }
-
-    flags |= O_NONBLOCK;
-
-    int rc = fcntl(sockfd, F_SETFL, flags);
-    if (rc == -1)
-    {
-        log_error("fcntl(socket %d, set +nonblock): %s", sockfd,
-                  strerror(sockfd));
-        return 1;
-    }
-
-    log_debug("Socket %d now set to non-blocking", sockfd);
-
-    return 0;
-}
-
-static int server_setup_socket(struct server *s)
+static int setup_socket(struct server *s)
 {
     int fd = socket(s->address_family, SOCK_STREAM, 0);
     if (fd == -1)
@@ -124,13 +99,13 @@ static int server_setup_socket(struct server *s)
               s->address_str, s->port_str);
 
     // Try to setsockopt
-    if (zerod_setsockopt(fd, SO_REUSEPORT, 1))
+    if (zd_socket_util_setsockopt(fd, SO_REUSEPORT, 1))
     {
         return 1;
     }
 
     // Make socket nonblocking
-    if (zerod_make_socket_nonblocking(fd))
+    if (zd_socket_util_setnonblocking(fd))
     {
         return 1;
     }
@@ -138,7 +113,7 @@ static int server_setup_socket(struct server *s)
     return 0;
 }
 
-static int server_setup_bind(struct server *s)
+static int setup_bind(struct server *s)
 {
     if (bind(s->socket_fd, (struct sockaddr *)&s->sockaddr,
              sizeof(s->sockaddr)) != 0)
@@ -154,7 +129,7 @@ static int server_setup_bind(struct server *s)
     return 0;
 }
 
-static int server_setup_listen(struct server *s)
+static int setup_listen(struct server *s)
 {
     if (listen(s->socket_fd, 0) != 0)
     {
@@ -166,7 +141,7 @@ static int server_setup_listen(struct server *s)
     return 0;
 }
 
-static int server_setup_epoll(struct server *s)
+static int setup_epoll(struct server *s)
 {
     s->epoll_fd = epoll_create1(0);
     if (s->epoll_fd == -1)
@@ -231,7 +206,7 @@ void server_process_events(struct server *s)
         // Process the events
         for (int n = 0; n < nfds; ++n)
         {
-            server_process_one_event(s, n);
+            ev_do_one(s, n);
         }
     }
 }
