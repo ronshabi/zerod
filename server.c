@@ -8,28 +8,19 @@
 #include <string.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
+#include <unistd.h> // close
 
+#include "buffer.h"
+#include "connection.h"
 #include "logging.h"
 #include "server.h"
+#include "socket.h"
 
 //
 // Static functions
 //
-static int zerod_setsockopt(int fd, int optname, int optval)
-{
-    const int rc = setsockopt(fd, SOL_SOCKET, optname, &optval, sizeof(optval));
-    if (rc != 0)
-    {
-        log_error("setsockopt(fd: %d, optname: %d, optval: %d) failed - %s", fd,
-                  optname, optval, strerror(errno));
-        return 1;
-    }
 
-    log_debug("setsockopt(fd: %d, optname: %d) to %d", fd, optname, optval);
-    return 0;
-}
-
-static int server_setup_getaddrinfo(struct server *s)
+static int setup_getaddrinfo(struct server *s)
 {
     int              rc    = 0;
     struct addrinfo  hints = {0};
@@ -170,7 +161,34 @@ static int setup_epoll(struct server *s)
     return 0;
 }
 
-void server_process_one_event(struct server *s, int event_index)
+static void cleanup_connections(struct server *s)
+{
+    for (uint64_t i = 0; i < s->connection_buffer.len; ++i)
+    {
+        struct connection *ptr = buffer_at(&s->connection_buffer, i);
+        if (ptr->status == CONNECTION_ACTIVE)
+        {
+            log_debug("cleanup: close connection %d (fd %d) @ %p", i, ptr,
+                      ptr->socket_fd);
+
+            close(ptr->socket_fd);
+        }
+    }
+
+    buffer_free(&s->connection_buffer);
+}
+
+static int accept_new_connection(struct server *s)
+{
+    struct connection *c = buffer_push_zeros(&s->connection_buffer);
+    c->socket_fd         = accept(s->socket_fd, (struct sockaddr *)&c->sockaddr,
+                                  (socklen_t *)&c->sockaddr_len);
+
+    log_debug("created new connection @ %p, fd = %d", (void *)c, c->socket_fd);
+    return 0;
+}
+
+static void ev_do_one(struct server *s, int event_index)
 {
     log_debug("Processing event #%d", event_index);
 
@@ -179,10 +197,11 @@ void server_process_one_event(struct server *s, int event_index)
     if (current_event.data.fd == s->socket_fd)
     {
         log_debug("\t> got event on listening socket! should accept");
+        accept_new_connection(s);
     }
 }
 
-void server_process_events(struct server *s)
+void ev_loop(struct server *s)
 {
     log_debug("Starting server event loop");
 
@@ -222,35 +241,49 @@ void server_init(struct server *s, const char *port, int address_family)
     s->address_family = address_family;
     s->port_str       = port;
 
-    if (server_setup_getaddrinfo(s))
+    // Init connection buffer
+    buffer_init(&s->connection_buffer, sizeof(struct connection));
+
+    if (setup_getaddrinfo(s))
     {
         s->status = SERVER_ERROR_OS;
         return;
     }
 
-    if (server_setup_socket(s))
+    if (setup_socket(s))
     {
         s->status = SERVER_ERROR_OS;
         return;
     }
 
-    if (server_setup_bind(s))
+    if (setup_bind(s))
     {
         s->status = SERVER_ERROR_OS;
         return;
     }
 
-    if (server_setup_listen(s))
+    if (setup_listen(s))
     {
         s->status = SERVER_ERROR_OS;
         return;
     }
 
-    if (server_setup_epoll(s))
+    if (setup_epoll(s))
     {
         s->status = SERVER_ERROR_OS;
         return;
     }
 
-    server_process_events(s);
+    ev_loop(s);
+}
+
+void server_cleanup(struct server *s)
+{
+    cleanup_connections(s);
+
+    if (s->status == SERVER_OK)
+    {
+        close(s->epoll_fd);
+        close(s->socket_fd);
+    }
 }

@@ -13,5 +13,7 @@ int main(void)
 
     server_init(&s, "8080", AF_INET);
 
+    server_cleanup(&s);
+
     return 0;
 }

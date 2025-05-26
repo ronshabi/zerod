@@ -6,6 +6,8 @@
 #include <stdint.h>
 #include <sys/epoll.h>
 
+#include "buffer.h"
+
 #define SERVER_BACKLOG    1024
 #define SERVER_MAX_EVENTS 10
 
@@ -28,7 +30,9 @@ struct server
     int                epoll_fd;
     struct epoll_event epoll_ev;
     struct epoll_event epoll_events[SERVER_MAX_EVENTS];
+
+    struct buffer connection_buffer;
 };
 
 void server_init(struct server *s, const char *port, int address_family);
-int  server_cleanup(struct server *s);
+void server_cleanup(struct server *s);
